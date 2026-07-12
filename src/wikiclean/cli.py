@@ -1,8 +1,7 @@
-import json
-
 from fetch import fetch_article
 from filters import filter_article
 from input import resolve_input
+from output import format_output
 from parser import parse_article
 
 
@@ -38,7 +37,14 @@ def main():
         print("Option not found.")
         return
 
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+    output_format = input(
+        "\nOutput format (json/text/markdown): "
+    ).strip()
+
+    try:
+        print(format_output(result, output_format))
+    except ValueError as error:
+        print(error)
 
 
 if __name__ == "__main__":
