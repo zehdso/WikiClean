@@ -1,6 +1,6 @@
 from urllib.parse import unquote, urlparse
 
-from search import search
+from .search import search
 
 
 def resolve_input(value: str) -> str | None:

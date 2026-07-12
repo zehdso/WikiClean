@@ -1,8 +1,8 @@
-from fetch import fetch_article
-from filters import filter_article
-from input import resolve_input
-from output import format_output
-from parser import parse_article
+from .fetch import fetch_article
+from .filters import filter_article
+from .input import resolve_input
+from .output import format_output
+from .parser import parse_article
 
 
 def main():
