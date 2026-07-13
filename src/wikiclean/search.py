@@ -1,9 +1,16 @@
+import html
+import re
+
 import requests
+
 
 API_URL = "https://en.wikipedia.org/w/api.php"
 
 HEADERS = {
-    "User-Agent": "WikiClean/0.1 (https://github.com/zehdso/WikiClean)"
+    "User-Agent": (
+        "WikiClean/0.1 "
+        "(https://github.com/zehdso/WikiClean)"
+    )
 }
 
 
@@ -15,7 +22,11 @@ def search(query: str):
         "format": "json",
     }
 
-    response = requests.get(API_URL, params=params, headers=HEADERS)
+    response = requests.get(
+        API_URL,
+        params=params,
+        headers=HEADERS,
+    )
     response.raise_for_status()
 
     results = response.json()["query"]["search"]
@@ -25,13 +36,20 @@ def search(query: str):
 
     article = results[0]
 
+    snippet = html.unescape(
+        re.sub(
+            r"<[^>]+>",
+            "",
+            article["snippet"],
+        )
+    )
+
     return {
         "title": article["title"],
         "pageid": article["pageid"],
-        "snippet": article["snippet"],
+        "snippet": snippet,
     }
 
 
 if __name__ == "__main__":
     print(search("Holi"))
-
