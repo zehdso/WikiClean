@@ -1,5 +1,6 @@
 import re
 
+from .metadata import extract_metadata
 
 def build_section_tree(sections: list) -> list:
     tree = []
@@ -30,9 +31,9 @@ def parse_article(article: dict) -> dict:
     text = article.get("text", "")
 
     parts = re.split(
-    r"(?:^|\n)(={2,6})\s*(.*?)\s*\1(?:\n|$)",
-    text,
-)
+        r"(?:^|\n)(={2,6})\s*(.*?)\s*\1(?:\n|$)",
+        text,
+    )
 
     summary = parts[0].strip()
     flat_sections = []
@@ -48,7 +49,7 @@ def parse_article(article: dict) -> dict:
             "content": content,
         })
 
-    return {
+    result = {
         "title": article.get("title"),
         "pageid": article.get("pageid"),
         "url": article.get("url"),
@@ -56,3 +57,7 @@ def parse_article(article: dict) -> dict:
         "sections": flat_sections,
         "section_tree": build_section_tree(flat_sections),
     }
+
+    result["metadata"] = extract_metadata(result)
+
+    return result
