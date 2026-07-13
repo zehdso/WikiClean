@@ -14,11 +14,30 @@ HEADERS = {
 }
 
 
-def search(query: str):
+def clean_snippet(snippet: str) -> str:
+    return html.unescape(
+        re.sub(
+            r"<[^>]+>",
+            "",
+            snippet,
+        )
+    )
+
+
+def search_many(
+    query: str,
+    limit: int = 10,
+) -> list[dict]:
+    if limit < 1:
+        raise ValueError(
+            "Limit must be at least 1."
+        )
+
     params = {
         "action": "query",
         "list": "search",
         "srsearch": query,
+        "srlimit": limit,
         "format": "json",
     }
 
@@ -31,25 +50,34 @@ def search(query: str):
 
     results = response.json()["query"]["search"]
 
+    return [
+        {
+            "title": article["title"],
+            "pageid": article["pageid"],
+            "snippet": clean_snippet(
+                article["snippet"]
+            ),
+        }
+        for article in results
+    ]
+
+
+def search(query: str):
+    results = search_many(
+        query,
+        limit=1,
+    )
+
     if not results:
         return None
 
-    article = results[0]
-
-    snippet = html.unescape(
-        re.sub(
-            r"<[^>]+>",
-            "",
-            article["snippet"],
-        )
-    )
-
-    return {
-        "title": article["title"],
-        "pageid": article["pageid"],
-        "snippet": snippet,
-    }
+    return results[0]
 
 
 if __name__ == "__main__":
-    print(search("Holi"))
+    print(
+        search_many(
+            "Albert Einstein",
+            limit=5,
+        )
+    )
