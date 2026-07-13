@@ -132,3 +132,45 @@ def test_route_not_found(monkeypatch):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_health(monkeypatch):
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+    )
+
+    try:
+        status, data = request_json(
+            httpd,
+            "/health",
+        )
+
+        assert status == 200
+        assert data["status"] == "ok"
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_v1_article(monkeypatch):
+    def fake_get(article, section="summary"):
+        return {
+            "title": article,
+            "section": section,
+        }
+
+    httpd = start_test_server(monkeypatch, fake_get)
+
+    try:
+        status, data = request_json(
+            httpd,
+            "/v1/article/Holi?section=History",
+        )
+
+        assert status == 200
+        assert data["title"] == "Holi"
+        assert data["section"] == "History"
+    finally:
+        httpd.shutdown()
+        httpd.server_close()

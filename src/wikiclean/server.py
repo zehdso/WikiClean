@@ -31,13 +31,34 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
         if parsed_url.path == "/":
             self.send_json({
                 "name": "WikiClean API",
+                "version": "1",
                 "status": "ok",
             })
             return
 
-        if parsed_url.path.startswith("/article/"):
+        if parsed_url.path == "/health":
+            self.send_json({
+                "status": "ok",
+            })
+            return
+
+        article_prefixes = (
+            "/v1/article/",
+            "/article/",
+        )
+
+        prefix = next(
+            (
+                item
+                for item in article_prefixes
+                if parsed_url.path.startswith(item)
+            ),
+            None,
+        )
+
+        if prefix is not None:
             article = unquote(
-                parsed_url.path[len("/article/"):]
+                parsed_url.path[len(prefix):]
             ).strip()
 
             if not article:
@@ -58,7 +79,6 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
                     article,
                     section=section,
                 )
-
                 self.send_json(result)
 
             except ValueError as error:
