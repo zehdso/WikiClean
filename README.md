@@ -14,6 +14,8 @@ WikiClean accepts a Wikipedia article title, search term, or URL, fetches Wikipe
 - Extract clean article summaries
 - Extract article sections
 - Build hierarchical section trees
+- Extract infoboxes
+- Handle nested and multiline infobox values
 - Extract metadata such as years and numbers with context
 - Filter content by section
 - Clean search-result snippets
@@ -142,6 +144,35 @@ result = wikiclean.get(
 print(result)
 ```
 
+To retrieve the complete parsed article, including its infobox:
+
+```python
+import wikiclean
+
+result = wikiclean.get(
+    "Albert Einstein",
+    section="all",
+)
+
+print(result["infobox"])
+```
+
+Example infobox structure:
+
+```json
+{
+  "type": "scientist",
+  "fields": {
+    "image": "Albert Einstein Head cleaned.jpg",
+    "birth_date": "{{Birth date|df=yes|1879|3|14}}",
+    "birth_place": "[[Ulm]], Kingdom of Württemberg, German Empire",
+    "fields": "[[Physics]]"
+  }
+}
+```
+
+Infobox values preserve Wikipedia's original wikitext, including nested templates and links.
+
 ## HTTP API
 
 Start the server:
@@ -253,6 +284,33 @@ GET /article/Holi?section=History
 }
 ```
 
+## Infobox Extraction
+
+WikiClean extracts the first Wikipedia infobox from an article's wikitext.
+
+Example:
+
+```json
+{
+  "type": "scientist",
+  "fields": {
+    "image": "Albert Einstein Head cleaned.jpg",
+    "birth_date": "{{Birth date|df=yes|1879|3|14}}",
+    "birth_place": "[[Ulm]], Kingdom of Württemberg, German Empire",
+    "known_for": "{{Indented plainlist|...}}"
+  }
+}
+```
+
+The infobox parser supports:
+
+- Standard infobox fields
+- Nested templates
+- Deeply nested templates
+- Multiline values
+- Wiki links containing pipes
+- Case-insensitive infobox detection
+
 ## Metadata
 
 WikiClean can extract years and other numbers together with their surrounding context.
@@ -287,7 +345,7 @@ pytest
 Current test suite:
 
 ```text
-49 passed
+58 passed
 ```
 
 ## Project Status
@@ -304,6 +362,8 @@ WikiClean currently supports:
 - [x] Clean text extraction
 - [x] Section parsing
 - [x] Hierarchical section trees
+- [x] Infobox extraction
+- [x] Nested and multiline infobox values
 - [x] Metadata extraction
 - [x] Section filtering
 - [x] JSON output
@@ -323,7 +383,6 @@ WikiClean currently supports:
 
 Future possibilities:
 
-- [ ] Infobox extraction
 - [ ] Table extraction
 - [ ] Image metadata extraction
 - [ ] Web interface
