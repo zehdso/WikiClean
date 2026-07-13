@@ -7,6 +7,8 @@ WikiClean accepts a Wikipedia article title, search term, or URL, fetches Wikipe
 ## Features
 
 - Search Wikipedia articles
+- Return single or multiple search results
+- Control the number of search results
 - Fetch articles by title or search term
 - Accept Wikipedia article URLs
 - Extract clean article summaries
@@ -73,7 +75,7 @@ markdown
 
 ### Search Wikipedia
 
-Search for an article:
+Return the first search result:
 
 ```bash
 wikiclean search "Albert Einstein"
@@ -86,6 +88,35 @@ Example response:
   "title": "Albert Einstein",
   "pageid": 736,
   "snippet": "Albert Einstein was a German-born theoretical physicist..."
+}
+```
+
+### Multiple Search Results
+
+Use `--limit` to control the number of results:
+
+```bash
+wikiclean search "Albert Einstein" --limit 5
+```
+
+Example response:
+
+```json
+{
+  "query": "Albert Einstein",
+  "count": 5,
+  "results": [
+    {
+      "title": "Albert Einstein",
+      "pageid": 736,
+      "snippet": "Albert Einstein was a German-born theoretical physicist..."
+    },
+    {
+      "title": "Hans Albert Einstein",
+      "pageid": 1373258,
+      "snippet": "Hans Albert Einstein was a Swiss-American engineer..."
+    }
+  ]
 }
 ```
 
@@ -141,6 +172,8 @@ Example response:
 
 ### Search Wikipedia
 
+Return the first search result:
+
 ```text
 GET /v1/search?q=Albert+Einstein
 ```
@@ -152,6 +185,35 @@ Example response:
   "title": "Albert Einstein",
   "pageid": 736,
   "snippet": "Albert Einstein was a German-born theoretical physicist..."
+}
+```
+
+### Multiple Search Results
+
+Use the `limit` parameter to control the number of results:
+
+```text
+GET /v1/search?q=Albert+Einstein&limit=5
+```
+
+Example response:
+
+```json
+{
+  "query": "Albert Einstein",
+  "count": 5,
+  "results": [
+    {
+      "title": "Albert Einstein",
+      "pageid": 736,
+      "snippet": "Albert Einstein was a German-born theoretical physicist..."
+    },
+    {
+      "title": "Hans Albert Einstein",
+      "pageid": 1373258,
+      "snippet": "Hans Albert Einstein was a Swiss-American engineer..."
+    }
+  ]
 }
 ```
 
@@ -225,7 +287,7 @@ pytest
 Current test suite:
 
 ```text
-38 passed
+49 passed
 ```
 
 ## Project Status
@@ -233,6 +295,9 @@ Current test suite:
 WikiClean currently supports:
 
 - [x] Wikipedia article search
+- [x] Single search results
+- [x] Multiple search results
+- [x] Configurable search-result limits
 - [x] Wikipedia article fetching
 - [x] Article title and URL input
 - [x] Clean search snippets
@@ -246,9 +311,11 @@ WikiClean currently supports:
 - [x] Markdown output
 - [x] CLI
 - [x] CLI search command
+- [x] CLI multi-result search
 - [x] Python API
 - [x] HTTP API
 - [x] HTTP search endpoint
+- [x] HTTP multi-result search
 - [x] Versioned API routes
 - [x] Health endpoint
 - [x] Network and error handling
@@ -256,7 +323,6 @@ WikiClean currently supports:
 
 Future possibilities:
 
-- [ ] Multiple search results
 - [ ] Infobox extraction
 - [ ] Table extraction
 - [ ] Image metadata extraction
