@@ -2,17 +2,19 @@
 
 Transform Wikipedia articles into clean, structured, developer-friendly data.
 
-WikiClean accepts a Wikipedia article title or URL, fetches the article, cleans the content, parses its sections, and returns structured data through a CLI, Python API, or HTTP API.
+WikiClean accepts a Wikipedia article title, search term, or URL, fetches Wikipedia content, cleans and parses it, and returns structured data through a CLI, Python API, or HTTP API.
 
 ## Features
 
-- Fetch articles by Wikipedia title
+- Search Wikipedia articles
+- Fetch articles by title or search term
 - Accept Wikipedia article URLs
 - Extract clean article summaries
 - Extract article sections
 - Build hierarchical section trees
 - Extract metadata such as years and numbers with context
 - Filter content by section
+- Clean search-result snippets
 - JSON output
 - Plain-text output
 - Markdown output
@@ -41,6 +43,8 @@ python -m pip install -e .
 
 ## CLI Usage
 
+### Get an Article
+
 Get the default article summary:
 
 ```bash
@@ -67,7 +71,27 @@ json
 markdown
 ```
 
-You can also run WikiClean without arguments for interactive mode:
+### Search Wikipedia
+
+Search for an article:
+
+```bash
+wikiclean search "Albert Einstein"
+```
+
+Example response:
+
+```json
+{
+  "title": "Albert Einstein",
+  "pageid": 736,
+  "snippet": "Albert Einstein was a German-born theoretical physicist..."
+}
+```
+
+### Interactive Mode
+
+Run WikiClean without arguments:
 
 ```bash
 wikiclean
@@ -115,6 +139,22 @@ Example response:
 }
 ```
 
+### Search Wikipedia
+
+```text
+GET /v1/search?q=Albert+Einstein
+```
+
+Example response:
+
+```json
+{
+  "title": "Albert Einstein",
+  "pageid": 736,
+  "snippet": "Albert Einstein was a German-born theoretical physicist..."
+}
+```
+
 ### Get an Article
 
 ```text
@@ -127,13 +167,13 @@ GET /v1/article/Holi
 GET /v1/article/Holi?section=History
 ```
 
-The older route is also supported for backward compatibility:
+The older article route is also supported for backward compatibility:
 
 ```text
 GET /article/Holi?section=History
 ```
 
-## Example JSON Response
+## Example Article Response
 
 ```json
 {
@@ -185,15 +225,17 @@ pytest
 Current test suite:
 
 ```text
-26 passed
+38 passed
 ```
 
 ## Project Status
 
 WikiClean currently supports:
 
+- [x] Wikipedia article search
 - [x] Wikipedia article fetching
 - [x] Article title and URL input
+- [x] Clean search snippets
 - [x] Clean text extraction
 - [x] Section parsing
 - [x] Hierarchical section trees
@@ -203,15 +245,18 @@ WikiClean currently supports:
 - [x] Plain-text output
 - [x] Markdown output
 - [x] CLI
+- [x] CLI search command
 - [x] Python API
 - [x] HTTP API
+- [x] HTTP search endpoint
 - [x] Versioned API routes
 - [x] Health endpoint
+- [x] Network and error handling
 - [x] Automated tests
 
 Future possibilities:
 
-- [ ] Article search
+- [ ] Multiple search results
 - [ ] Infobox extraction
 - [ ] Table extraction
 - [ ] Image metadata extraction
