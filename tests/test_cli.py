@@ -155,7 +155,10 @@ def test_search_success(monkeypatch, capsys):
     assert exit_code == 0
     assert "Albert Einstein" in captured.out
     assert "736" in captured.out
-    assert "German-born physicist." in captured.out
+    assert (
+        "German-born physicist."
+        in captured.out
+    )
 
 
 def test_search_no_results(monkeypatch, capsys):
@@ -223,5 +226,115 @@ def test_search_missing_query(
     assert exit_code == 1
     assert (
         "Error: Search query is required."
+        in captured.err
+    )
+
+
+def test_search_multiple_results(
+    monkeypatch,
+    capsys,
+):
+    def fake_search_many(
+        query,
+        limit=10,
+    ):
+        return [
+            {
+                "title": "Albert Einstein",
+                "pageid": 736,
+                "snippet": "A physicist.",
+            },
+            {
+                "title": "Hans Albert Einstein",
+                "pageid": 1373258,
+                "snippet": "An engineer.",
+            },
+        ]
+
+    monkeypatch.setattr(
+        cli,
+        "search_many",
+        fake_search_many,
+    )
+
+    exit_code = cli.process_search(
+        "Albert Einstein",
+        limit=2,
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert '"count": 2' in captured.out
+    assert "Albert Einstein" in captured.out
+    assert (
+        "Hans Albert Einstein"
+        in captured.out
+    )
+
+
+def test_search_multiple_no_results(
+    monkeypatch,
+    capsys,
+):
+    monkeypatch.setattr(
+        cli,
+        "search_many",
+        lambda query, limit=10: [],
+    )
+
+    exit_code = cli.process_search(
+        "Nothing",
+        limit=5,
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert (
+        "Error: No search results found."
+        in captured.err
+    )
+
+
+def test_search_invalid_limit(
+    capsys,
+):
+    exit_code = cli.process_search(
+        "Holi",
+        limit=0,
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert (
+        "Error: Limit must be at least 1."
+        in captured.err
+    )
+
+
+def test_limit_without_search(
+    monkeypatch,
+    capsys,
+):
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "wikiclean",
+            "Holi",
+            "--limit",
+            "5",
+        ],
+    )
+
+    exit_code = cli.main()
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert (
+        "Error: --limit can only be used "
+        "with the search command."
         in captured.err
     )

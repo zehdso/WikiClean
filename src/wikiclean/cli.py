@@ -9,7 +9,7 @@ from .filters import filter_article
 from .input import resolve_input
 from .output import format_output
 from .parser import parse_article
-from .search import search
+from .search import search, search_many
 
 
 def process(user_input, option, output_format):
@@ -58,9 +58,43 @@ def process(user_input, option, output_format):
     return 0
 
 
-def process_search(query):
+def process_search(query, limit=None):
     try:
-        result = search(query)
+        if limit is None:
+            result = search(query)
+
+            if result is None:
+                print(
+                    "Error: No search results found.",
+                    file=sys.stderr,
+                )
+                return 1
+
+        else:
+            if limit < 1:
+                print(
+                    "Error: Limit must be at least 1.",
+                    file=sys.stderr,
+                )
+                return 1
+
+            results = search_many(
+                query,
+                limit=limit,
+            )
+
+            if not results:
+                print(
+                    "Error: No search results found.",
+                    file=sys.stderr,
+                )
+                return 1
+
+            result = {
+                "query": query,
+                "count": len(results),
+                "results": results,
+            }
 
     except requests.RequestException:
         print(
@@ -68,13 +102,6 @@ def process_search(query):
             file=sys.stderr,
         )
         return 2
-
-    if result is None:
-        print(
-            "Error: No search results found.",
-            file=sys.stderr,
-        )
-        return 1
 
     print(
         json.dumps(
@@ -204,6 +231,16 @@ def main():
         ),
     )
 
+    parser.add_argument(
+        "-l",
+        "--limit",
+        type=int,
+        help=(
+            "Number of search results "
+            "to return"
+        ),
+    )
+
     args = parser.parse_args()
 
     if args.article == "search":
@@ -214,7 +251,18 @@ def main():
             )
             return 1
 
-        return process_search(args.query)
+        return process_search(
+            args.query,
+            limit=args.limit,
+        )
+
+    if args.limit is not None:
+        print(
+            "Error: --limit can only be used "
+            "with the search command.",
+            file=sys.stderr,
+        )
+        return 1
 
     if args.article is None:
         return interactive_mode()
