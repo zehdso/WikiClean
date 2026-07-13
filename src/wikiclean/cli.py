@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 from .fetch import fetch_article
 from .filters import filter_article
@@ -11,26 +12,29 @@ def process(user_input, option, output_format):
     title = resolve_input(user_input)
 
     if title is None:
-        print("Article not found.")
-        return
+        print("Error: Article not found.", file=sys.stderr)
+        return 1
 
     article = fetch_article(title)
 
     if article is None:
-        print("Could not fetch the article.")
-        return
+        print("Error: Could not fetch the article.", file=sys.stderr)
+        return 2
 
     parsed = parse_article(article)
     result = filter_article(parsed, option)
 
     if result is None:
-        print("Option not found.")
-        return
+        print("Error: Option not found.", file=sys.stderr)
+        return 3
 
     try:
         print(format_output(result, output_format))
     except ValueError as error:
-        print(error)
+        print(f"Error: {error}", file=sys.stderr)
+        return 4
+
+    return 0
 
 
 def interactive_mode():
@@ -39,14 +43,14 @@ def interactive_mode():
     title = resolve_input(user_input)
 
     if title is None:
-        print("Article not found.")
-        return
+        print("Error: Article not found.", file=sys.stderr)
+        return 1
 
     article = fetch_article(title)
 
     if article is None:
-        print("Could not fetch the article.")
-        return
+        print("Error: Could not fetch the article.", file=sys.stderr)
+        return 2
 
     parsed = parse_article(article)
 
@@ -65,13 +69,16 @@ def interactive_mode():
     result = filter_article(parsed, option)
 
     if result is None:
-        print("Option not found.")
-        return
+        print("Error: Option not found.", file=sys.stderr)
+        return 3
 
     try:
         print(format_output(result, output_format))
     except ValueError as error:
-        print(error)
+        print(f"Error: {error}", file=sys.stderr)
+        return 4
+
+    return 0
 
 
 def main():
@@ -103,10 +110,10 @@ def main():
     args = parser.parse_args()
 
     if args.article is None:
-        interactive_mode()
-    else:
-        process(args.article, args.section, args.format)
+        return interactive_mode()
+
+    return process(args.article, args.section, args.format)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
