@@ -4,11 +4,28 @@ import urllib.error
 import urllib.request
 from http.server import HTTPServer
 
+import requests
+
 from wikiclean import server
 
 
-def start_test_server(monkeypatch, fake_get):
-    monkeypatch.setattr(server, "get", fake_get)
+def start_test_server(
+    monkeypatch,
+    fake_get,
+    fake_search=None,
+):
+    monkeypatch.setattr(
+        server,
+        "get",
+        fake_get,
+    )
+
+    if fake_search is not None:
+        monkeypatch.setattr(
+            server,
+            "search",
+            fake_search,
+        )
 
     httpd = HTTPServer(
         ("127.0.0.1", 0),
@@ -61,7 +78,10 @@ def test_article(monkeypatch):
             "section": section,
         }
 
-    httpd = start_test_server(monkeypatch, fake_get)
+    httpd = start_test_server(
+        monkeypatch,
+        fake_get,
+    )
 
     try:
         status, data = request_json(
@@ -81,7 +101,10 @@ def test_article_not_found(monkeypatch):
     def fake_get(article, section="summary"):
         raise ValueError("Article not found.")
 
-    httpd = start_test_server(monkeypatch, fake_get)
+    httpd = start_test_server(
+        monkeypatch,
+        fake_get,
+    )
 
     try:
         status, data = request_json(
@@ -98,9 +121,14 @@ def test_article_not_found(monkeypatch):
 
 def test_fetch_failure(monkeypatch):
     def fake_get(article, section="summary"):
-        raise RuntimeError("Could not fetch the article.")
+        raise RuntimeError(
+            "Could not fetch the article."
+        )
 
-    httpd = start_test_server(monkeypatch, fake_get)
+    httpd = start_test_server(
+        monkeypatch,
+        fake_get,
+    )
 
     try:
         status, data = request_json(
@@ -109,7 +137,10 @@ def test_fetch_failure(monkeypatch):
         )
 
         assert status == 502
-        assert data["error"] == "Could not fetch the article."
+        assert (
+            data["error"]
+            == "Could not fetch the article."
+        )
     finally:
         httpd.shutdown()
         httpd.server_close()
@@ -160,7 +191,10 @@ def test_v1_article(monkeypatch):
             "section": section,
         }
 
-    httpd = start_test_server(monkeypatch, fake_get)
+    httpd = start_test_server(
+        monkeypatch,
+        fake_get,
+    )
 
     try:
         status, data = request_json(
@@ -171,6 +205,114 @@ def test_v1_article(monkeypatch):
         assert status == 200
         assert data["title"] == "Holi"
         assert data["section"] == "History"
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_search_success(monkeypatch):
+    def fake_search(query):
+        return {
+            "title": "Holi",
+            "pageid": 489575,
+            "snippet": "Holi is a festival.",
+        }
+
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+        fake_search,
+    )
+
+    try:
+        status, data = request_json(
+            httpd,
+            "/v1/search?q=Holi",
+        )
+
+        assert status == 200
+        assert data["title"] == "Holi"
+        assert data["pageid"] == 489575
+        assert (
+            data["snippet"]
+            == "Holi is a festival."
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_search_missing_query(monkeypatch):
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+    )
+
+    try:
+        status, data = request_json(
+            httpd,
+            "/v1/search",
+        )
+
+        assert status == 400
+        assert (
+            data["error"]
+            == "Search query is required."
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_search_no_results(monkeypatch):
+    def fake_search(query):
+        return None
+
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+        fake_search,
+    )
+
+    try:
+        status, data = request_json(
+            httpd,
+            "/v1/search?q=Nothing",
+        )
+
+        assert status == 404
+        assert (
+            data["error"]
+            == "No search results found."
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_search_network_failure(monkeypatch):
+    def fake_search(query):
+        raise requests.RequestException(
+            "Network failure"
+        )
+
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+        fake_search,
+    )
+
+    try:
+        status, data = request_json(
+            httpd,
+            "/v1/search?q=Holi",
+        )
+
+        assert status == 502
+        assert (
+            data["error"]
+            == "Could not search Wikipedia."
+        )
     finally:
         httpd.shutdown()
         httpd.server_close()

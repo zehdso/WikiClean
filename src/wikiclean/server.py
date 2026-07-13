@@ -2,7 +2,10 @@ import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
+import requests
+
 from .api import get
+from .search import search
 
 
 class WikiCleanHandler(BaseHTTPRequestHandler):
@@ -40,6 +43,64 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
             self.send_json({
                 "status": "ok",
             })
+            return
+
+        if parsed_url.path == "/v1/search":
+            query_params = parse_qs(
+                parsed_url.query
+            )
+            query = query_params.get(
+                "q",
+                [""],
+            )[0].strip()
+
+            if not query:
+                self.send_json(
+                    {
+                        "error": (
+                            "Search query is required."
+                        )
+                    },
+                    400,
+                )
+                return
+
+            try:
+                result = search(query)
+
+                if result is None:
+                    self.send_json(
+                        {
+                            "error": (
+                                "No search results found."
+                            )
+                        },
+                        404,
+                    )
+                    return
+
+                self.send_json(result)
+
+            except requests.RequestException:
+                self.send_json(
+                    {
+                        "error": (
+                            "Could not search Wikipedia."
+                        )
+                    },
+                    502,
+                )
+
+            except Exception:
+                self.send_json(
+                    {
+                        "error": (
+                            "Internal server error."
+                        )
+                    },
+                    500,
+                )
+
             return
 
         article_prefixes = (
@@ -95,7 +156,11 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
 
             except Exception:
                 self.send_json(
-                    {"error": "Internal server error."},
+                    {
+                        "error": (
+                            "Internal server error."
+                        )
+                    },
                     500,
                 )
 
