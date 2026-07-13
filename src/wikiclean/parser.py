@@ -1,6 +1,8 @@
 import re
 
+from .infobox import extract_infobox
 from .metadata import extract_metadata
+
 
 def build_section_tree(sections: list) -> list:
     tree = []
@@ -14,7 +16,10 @@ def build_section_tree(sections: list) -> list:
             "children": [],
         }
 
-        while stack and stack[-1]["level"] >= node["level"]:
+        while (
+            stack
+            and stack[-1]["level"] >= node["level"]
+        ):
             stack.pop()
 
         if stack:
@@ -29,6 +34,7 @@ def build_section_tree(sections: list) -> list:
 
 def parse_article(article: dict) -> dict:
     text = article.get("text", "")
+    wikitext = article.get("wikitext", "")
 
     parts = re.split(
         r"(?:^|\n)(={2,6})\s*(.*?)\s*\1(?:\n|$)",
@@ -55,9 +61,16 @@ def parse_article(article: dict) -> dict:
         "url": article.get("url"),
         "summary": summary,
         "sections": flat_sections,
-        "section_tree": build_section_tree(flat_sections),
+        "section_tree": build_section_tree(
+            flat_sections
+        ),
+        "infobox": extract_infobox(
+            wikitext
+        ),
     }
 
-    result["metadata"] = extract_metadata(result)
+    result["metadata"] = extract_metadata(
+        result
+    )
 
     return result

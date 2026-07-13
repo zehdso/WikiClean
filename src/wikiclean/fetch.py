@@ -3,15 +3,20 @@ import requests
 API_URL = "https://en.wikipedia.org/w/api.php"
 
 HEADERS = {
-    "User-Agent": "WikiClean/0.1 (https://github.com/zehdso/WikiClean)"
+    "User-Agent": (
+        "WikiClean/0.1 "
+        "(https://github.com/zehdso/WikiClean)"
+    )
 }
 
 
 def fetch_article(title: str) -> dict | None:
     params = {
         "action": "query",
-        "prop": "extracts",
+        "prop": "extracts|revisions",
         "explaintext": True,
+        "rvprop": "content",
+        "rvslots": "main",
         "redirects": True,
         "titles": title,
         "format": "json",
@@ -29,26 +34,45 @@ def fetch_article(title: str) -> dict | None:
         data = response.json()
 
     except requests.Timeout:
-        print("Error: Wikipedia request timed out.")
+        print(
+            "Error: Wikipedia request timed out."
+        )
         return None
 
     except requests.ConnectionError:
-        print("Error: Could not connect to Wikipedia.")
+        print(
+            "Error: Could not connect to Wikipedia."
+        )
         return None
 
     except requests.HTTPError as error:
-        print(f"Error: Wikipedia returned an HTTP error: {error}")
+        print(
+            "Error: Wikipedia returned an "
+            f"HTTP error: {error}"
+        )
         return None
 
     except requests.RequestException as error:
-        print(f"Error: Network request failed: {error}")
+        print(
+            "Error: Network request failed: "
+            f"{error}"
+        )
         return None
 
     except ValueError:
-        print("Error: Wikipedia returned an invalid response.")
+        print(
+            "Error: Wikipedia returned an "
+            "invalid response."
+        )
         return None
 
-    pages = data.get("query", {}).get("pages", [])
+    pages = data.get(
+        "query",
+        {},
+    ).get(
+        "pages",
+        [],
+    )
 
     if not pages:
         return None
@@ -58,16 +82,45 @@ def fetch_article(title: str) -> dict | None:
     if page.get("missing"):
         return None
 
+    wikitext = ""
+
+    revisions = page.get(
+        "revisions",
+        [],
+    )
+
+    if revisions:
+        wikitext = (
+            revisions[0]
+            .get("slots", {})
+            .get("main", {})
+            .get("content", "")
+        )
+
     return {
         "title": page.get("title"),
         "pageid": page.get("pageid"),
         "url": (
             "https://en.wikipedia.org/wiki/"
-            + page.get("title", "").replace(" ", "_")
+            + page.get(
+                "title",
+                "",
+            ).replace(
+                " ",
+                "_",
+            )
         ),
-        "text": page.get("extract", ""),
+        "text": page.get(
+            "extract",
+            "",
+        ),
+        "wikitext": wikitext,
     }
 
 
 if __name__ == "__main__":
-    print(fetch_article("Holi"))
+    print(
+        fetch_article(
+            "Albert Einstein"
+        )
+    )
