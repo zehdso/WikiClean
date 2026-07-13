@@ -13,6 +13,7 @@ def start_test_server(
     monkeypatch,
     fake_get,
     fake_search=None,
+    fake_search_many=None,
 ):
     monkeypatch.setattr(
         server,
@@ -25,6 +26,13 @@ def start_test_server(
             server,
             "search",
             fake_search,
+        )
+
+    if fake_search_many is not None:
+        monkeypatch.setattr(
+            server,
+            "search_many",
+            fake_search_many,
         )
 
     httpd = HTTPServer(
@@ -61,7 +69,10 @@ def test_root(monkeypatch):
     )
 
     try:
-        status, data = request_json(httpd, "/")
+        status, data = request_json(
+            httpd,
+            "/",
+        )
 
         assert status == 200
         assert data["name"] == "WikiClean API"
@@ -99,7 +110,9 @@ def test_article(monkeypatch):
 
 def test_article_not_found(monkeypatch):
     def fake_get(article, section="summary"):
-        raise ValueError("Article not found.")
+        raise ValueError(
+            "Article not found."
+        )
 
     httpd = start_test_server(
         monkeypatch,
@@ -113,7 +126,10 @@ def test_article_not_found(monkeypatch):
         )
 
         assert status == 404
-        assert data["error"] == "Article not found."
+        assert (
+            data["error"]
+            == "Article not found."
+        )
     finally:
         httpd.shutdown()
         httpd.server_close()
@@ -159,7 +175,10 @@ def test_route_not_found(monkeypatch):
         )
 
         assert status == 404
-        assert data["error"] == "Route not found."
+        assert (
+            data["error"]
+            == "Route not found."
+        )
     finally:
         httpd.shutdown()
         httpd.server_close()
@@ -221,7 +240,7 @@ def test_search_success(monkeypatch):
     httpd = start_test_server(
         monkeypatch,
         lambda article, section="summary": {},
-        fake_search,
+        fake_search=fake_search,
     )
 
     try:
@@ -271,7 +290,7 @@ def test_search_no_results(monkeypatch):
     httpd = start_test_server(
         monkeypatch,
         lambda article, section="summary": {},
-        fake_search,
+        fake_search=fake_search,
     )
 
     try:
@@ -299,7 +318,7 @@ def test_search_network_failure(monkeypatch):
     httpd = start_test_server(
         monkeypatch,
         lambda article, section="summary": {},
-        fake_search,
+        fake_search=fake_search,
     )
 
     try:
@@ -312,6 +331,90 @@ def test_search_network_failure(monkeypatch):
         assert (
             data["error"]
             == "Could not search Wikipedia."
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_search_multiple_results(monkeypatch):
+    def fake_search_many(query, limit=10):
+        return [
+            {
+                "title": "Albert Einstein",
+                "pageid": 736,
+                "snippet": "A physicist.",
+            },
+            {
+                "title": "Hans Albert Einstein",
+                "pageid": 1373258,
+                "snippet": "An engineer.",
+            },
+        ]
+
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+        fake_search_many=fake_search_many,
+    )
+
+    try:
+        status, data = request_json(
+            httpd,
+            "/v1/search?q=Einstein&limit=2",
+        )
+
+        assert status == 200
+        assert data["query"] == "Einstein"
+        assert data["count"] == 2
+        assert len(data["results"]) == 2
+        assert (
+            data["results"][0]["title"]
+            == "Albert Einstein"
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_search_invalid_limit(monkeypatch):
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+    )
+
+    try:
+        status, data = request_json(
+            httpd,
+            "/v1/search?q=Einstein&limit=abc",
+        )
+
+        assert status == 400
+        assert (
+            data["error"]
+            == "Limit must be an integer."
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_search_limit_below_one(monkeypatch):
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+    )
+
+    try:
+        status, data = request_json(
+            httpd,
+            "/v1/search?q=Einstein&limit=0",
+        )
+
+        assert status == 400
+        assert (
+            data["error"]
+            == "Limit must be at least 1."
         )
     finally:
         httpd.shutdown()

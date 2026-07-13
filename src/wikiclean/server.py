@@ -5,7 +5,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 import requests
 
 from .api import get
-from .search import search
+from .search import search, search_many
 
 
 class WikiCleanHandler(BaseHTTPRequestHandler):
@@ -49,6 +49,7 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
             query_params = parse_qs(
                 parsed_url.query
             )
+
             query = query_params.get(
                 "q",
                 [""],
@@ -65,10 +66,60 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
                 )
                 return
 
-            try:
-                result = search(query)
+            limit_value = query_params.get(
+                "limit"
+            )
 
-                if result is None:
+            try:
+                if limit_value is None:
+                    result = search(query)
+
+                    if result is None:
+                        self.send_json(
+                            {
+                                "error": (
+                                    "No search results found."
+                                )
+                            },
+                            404,
+                        )
+                        return
+
+                    self.send_json(result)
+                    return
+
+                try:
+                    limit = int(
+                        limit_value[0]
+                    )
+                except ValueError:
+                    self.send_json(
+                        {
+                            "error": (
+                                "Limit must be an integer."
+                            )
+                        },
+                        400,
+                    )
+                    return
+
+                if limit < 1:
+                    self.send_json(
+                        {
+                            "error": (
+                                "Limit must be at least 1."
+                            )
+                        },
+                        400,
+                    )
+                    return
+
+                results = search_many(
+                    query,
+                    limit=limit,
+                )
+
+                if not results:
                     self.send_json(
                         {
                             "error": (
@@ -79,7 +130,11 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
                     )
                     return
 
-                self.send_json(result)
+                self.send_json({
+                    "query": query,
+                    "count": len(results),
+                    "results": results,
+                })
 
             except requests.RequestException:
                 self.send_json(
@@ -124,12 +179,19 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
 
             if not article:
                 self.send_json(
-                    {"error": "Article is required."},
+                    {
+                        "error": (
+                            "Article is required."
+                        )
+                    },
                     400,
                 )
                 return
 
-            query = parse_qs(parsed_url.query)
+            query = parse_qs(
+                parsed_url.query
+            )
+
             section = query.get(
                 "section",
                 ["summary"],
@@ -144,13 +206,17 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
 
             except ValueError as error:
                 self.send_json(
-                    {"error": str(error)},
+                    {
+                        "error": str(error)
+                    },
                     404,
                 )
 
             except RuntimeError as error:
                 self.send_json(
-                    {"error": str(error)},
+                    {
+                        "error": str(error)
+                    },
                     502,
                 )
 
@@ -167,7 +233,11 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
             return
 
         self.send_json(
-            {"error": "Route not found."},
+            {
+                "error": (
+                    "Route not found."
+                )
+            },
             404,
         )
 
@@ -186,7 +256,9 @@ def run(host="127.0.0.1", port=8000):
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nStopping WikiClean API.")
+        print(
+            "\nStopping WikiClean API."
+        )
     finally:
         server.server_close()
 
