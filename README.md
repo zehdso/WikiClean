@@ -4,23 +4,23 @@ Transform Wikipedia articles into clean, structured, developer-friendly data.
 
 WikiClean accepts a Wikipedia article title, search term, or Wikipedia URL, fetches the content, cleans and parses it, and returns structured data through a CLI, Python API, HTTP API, or built-in web interface.
 
-## Web Interface
+**Live demo:** https://wikiclean.onrender.com/web
 
-After starting the WikiClean server, open:
+## Live Web Interface
 
-```text
-http://127.0.0.1:8000/web
-```
+Try WikiClean online:
 
-> This is a local address and works on the device running WikiClean. A public deployment URL can be added here when WikiClean is hosted online.
+**https://wikiclean.onrender.com/web**
 
-The web interface lets users search for Wikipedia articles and view:
+No installation is required. Enter a Wikipedia article title to view its structured content, including:
 
 - Article summaries
 - Infobox data
 - Article sections
 - Extracted tables
 - Wikipedia images
+
+> The free hosting service may take a short time to wake up after a period of inactivity.
 
 ## Features
 
@@ -70,7 +70,7 @@ Install the project:
 python -m pip install -e .
 ```
 
-## Web Interface
+## Run the Web Interface Locally
 
 Start the server:
 
@@ -303,13 +303,19 @@ Example structure:
 
 ## HTTP API
 
-Start the server:
+The public API is available at:
+
+```text
+https://wikiclean.onrender.com
+```
+
+You can also run the API locally:
 
 ```bash
 python -m wikiclean.server
 ```
 
-By default, WikiClean runs locally at:
+The local server runs by default at:
 
 ```text
 http://127.0.0.1:8000
@@ -321,10 +327,22 @@ http://127.0.0.1:8000
 GET /
 ```
 
+Public example:
+
+```text
+https://wikiclean.onrender.com/
+```
+
 ### Health Check
 
 ```text
 GET /health
+```
+
+Public endpoint:
+
+```text
+https://wikiclean.onrender.com/health
 ```
 
 Example response:
@@ -341,6 +359,12 @@ Return the first search result:
 
 ```text
 GET /v1/search?q=Albert+Einstein
+```
+
+Public example:
+
+```text
+https://wikiclean.onrender.com/v1/search?q=Albert+Einstein
 ```
 
 Example response:
@@ -386,6 +410,12 @@ Example response:
 
 ```text
 GET /v1/article/Holi
+```
+
+Public example:
+
+```text
+https://wikiclean.onrender.com/v1/article/Holi
 ```
 
 ### Get a Specific Section
@@ -559,6 +589,8 @@ WikiClean currently supports:
 - [x] Versioned API routes
 - [x] Health endpoint
 - [x] Web interface
+- [x] Public web deployment
+- [x] Public HTTP API
 - [x] Image gallery
 - [x] Network and error handling
 - [x] Automated tests
@@ -568,7 +600,6 @@ Future possibilities:
 - [ ] More advanced Wikipedia template cleaning
 - [ ] Improved table parsing for complex tables
 - [ ] Image captions and richer image metadata
-- [ ] Public web deployment
 
 ## License
 
