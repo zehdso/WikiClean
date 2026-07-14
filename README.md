@@ -6,6 +6,20 @@ WikiClean accepts a Wikipedia article title, search term, or Wikipedia URL, fetc
 
 **Live demo:** https://wikiclean.onrender.com/web
 
+## Preview
+
+### Home
+
+![WikiClean home page](assets/home_page.jpg)
+
+### Article View
+
+![WikiClean article view](assets/article.jpg)
+
+### Images
+
+![WikiClean image gallery](assets/image.jpg)
+
 ## Live Web Interface
 
 Try WikiClean online:
