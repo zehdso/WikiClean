@@ -2,6 +2,7 @@ import re
 
 from .infobox import extract_infobox
 from .metadata import extract_metadata
+from .tables import extract_tables
 
 
 def build_section_tree(sections: list) -> list:
@@ -65,6 +66,9 @@ def parse_article(article: dict) -> dict:
             flat_sections
         ),
         "infobox": extract_infobox(
+            wikitext
+        ),
+        "tables": extract_tables(
             wikitext
         ),
     }
