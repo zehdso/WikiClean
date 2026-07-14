@@ -1,4 +1,5 @@
 import json
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -6,6 +7,7 @@ import requests
 
 from .api import get
 from .search import search, search_many
+from .web import render_article, render_home
 
 
 class WikiCleanHandler(BaseHTTPRequestHandler):
@@ -20,6 +22,21 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
         self.send_header(
             "Content-Type",
             "application/json; charset=utf-8",
+        )
+        self.send_header(
+            "Content-Length",
+            str(len(body)),
+        )
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_html(self, content, status=200):
+        body = content.encode("utf-8")
+
+        self.send_response(status)
+        self.send_header(
+            "Content-Type",
+            "text/html; charset=utf-8",
         )
         self.send_header(
             "Content-Length",
@@ -43,6 +60,77 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
             self.send_json({
                 "status": "ok",
             })
+            return
+
+        if parsed_url.path == "/web":
+            self.send_html(
+                render_home()
+            )
+            return
+
+        if parsed_url.path == "/web/article":
+            query_params = parse_qs(
+                parsed_url.query
+            )
+
+            query = query_params.get(
+                "q",
+                [""],
+            )[0].strip()
+
+            if not query:
+                self.send_html(
+                    render_home(),
+                    400,
+                )
+                return
+
+            try:
+                result = get(
+                    query,
+                    section="all",
+                )
+
+                self.send_html(
+                    render_article(result)
+                )
+
+            except ValueError:
+                self.send_html(
+                    render_article({
+                        "title": "Article not found",
+                        "summary": (
+                            "The requested Wikipedia "
+                            "article could not be found."
+                        ),
+                    }),
+                    404,
+                )
+
+            except RuntimeError:
+                self.send_html(
+                    render_article({
+                        "title": "Wikipedia unavailable",
+                        "summary": (
+                            "WikiClean could not fetch "
+                            "the article from Wikipedia."
+                        ),
+                    }),
+                    502,
+                )
+
+            except Exception:
+                self.send_html(
+                    render_article({
+                        "title": "Internal server error",
+                        "summary": (
+                            "WikiClean could not process "
+                            "this request."
+                        ),
+                    }),
+                    500,
+                )
+
             return
 
         if parsed_url.path == "/v1/search":
@@ -242,7 +330,10 @@ class WikiCleanHandler(BaseHTTPRequestHandler):
         )
 
 
-def run(host="127.0.0.1", port=8000):
+def run(
+    host="127.0.0.1",
+    port=8000,
+):
     server = HTTPServer(
         (host, port),
         WikiCleanHandler,
@@ -255,13 +346,23 @@ def run(host="127.0.0.1", port=8000):
 
     try:
         server.serve_forever()
+
     except KeyboardInterrupt:
         print(
             "\nStopping WikiClean API."
         )
+
     finally:
         server.server_close()
 
 
 if __name__ == "__main__":
-    run()
+    run(
+        host="0.0.0.0",
+        port=int(
+            os.environ.get(
+                "PORT",
+                "8000",
+            )
+        ),
+    )

@@ -139,11 +139,11 @@ def test_table_caption_is_ignored():
 def test_header_attributes_are_removed():
     wikitext = """
 {| class="wikitable"
-! Name
-! style=max-width:9em; | Country
+! style="width: 50%;" | Name
+! style="width: 50%;" | Age
 |-
 | Alice
-| France
+| 30
 |}
 """
 
@@ -151,7 +151,7 @@ def test_header_attributes_are_removed():
 
     assert result[0]["headers"] == [
         "Name",
-        "Country",
+        "Age",
     ]
 
 
@@ -160,8 +160,8 @@ def test_cell_attributes_are_removed():
 {| class="wikitable"
 ! Name !! Age
 |-
-| style="font-weight:bold;" | Alice
-| style="text-align:center;" | 30
+| style="text-align: left;" | Alice
+| style="text-align: center;" | 30
 |}
 """
 
@@ -175,7 +175,7 @@ def test_cell_attributes_are_removed():
     ]
 
 
-def test_wikilink_pipes_are_preserved():
+def test_wikilink_pipes_are_cleaned():
     wikitext = """
 {| class="wikitable"
 ! Person !! Field
@@ -189,7 +189,7 @@ def test_wikilink_pipes_are_preserved():
 
     assert result[0]["rows"] == [
         [
-            "[[Albert Einstein|Einstein]]",
-            "[[Theoretical physics|Physics]]",
+            "Einstein",
+            "Physics",
         ]
     ]

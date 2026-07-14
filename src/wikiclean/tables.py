@@ -1,36 +1,36 @@
 import re
 
+from .cleaner import clean_wikitext
+
 
 def _clean_cell(
     cell: str,
 ) -> str:
     cell = cell.strip()
 
-    if "|" not in cell:
-        return cell
+    if "|" in cell:
+        before, after = cell.split(
+            "|",
+            1,
+        )
 
-    before, after = cell.split(
-        "|",
-        1,
-    )
+        before = before.strip()
 
-    before = before.strip()
+        attribute_pattern = re.compile(
+            r"""
+            ^(?:
+                [a-zA-Z_:][-a-zA-Z0-9_:]*
+                \s*=
+                .+
+            )$
+            """,
+            re.VERBOSE | re.DOTALL,
+        )
 
-    attribute_pattern = re.compile(
-        r"""
-        ^(?:
-            [a-zA-Z_:][-a-zA-Z0-9_:]*
-            \s*=
-            .+
-        )$
-        """,
-        re.VERBOSE | re.DOTALL,
-    )
+        if attribute_pattern.match(before):
+            cell = after.strip()
 
-    if attribute_pattern.match(before):
-        return after.strip()
-
-    return cell
+    return clean_wikitext(cell)
 
 
 def _split_cells(

@@ -2,7 +2,25 @@
 
 Transform Wikipedia articles into clean, structured, developer-friendly data.
 
-WikiClean accepts a Wikipedia article title, search term, or URL, fetches Wikipedia content, cleans and parses it, and returns structured data through a CLI, Python API, or HTTP API.
+WikiClean accepts a Wikipedia article title, search term, or Wikipedia URL, fetches the content, cleans and parses it, and returns structured data through a CLI, Python API, HTTP API, or built-in web interface.
+
+## Web Interface
+
+After starting the WikiClean server, open:
+
+```text
+http://127.0.0.1:8000/web
+```
+
+> This is a local address and works on the device running WikiClean. A public deployment URL can be added here when WikiClean is hosted online.
+
+The web interface lets users search for Wikipedia articles and view:
+
+- Article summaries
+- Infobox data
+- Article sections
+- Extracted tables
+- Wikipedia images
 
 ## Features
 
@@ -16,8 +34,14 @@ WikiClean accepts a Wikipedia article title, search term, or URL, fetches Wikipe
 - Build hierarchical section trees
 - Extract infoboxes
 - Handle nested and multiline infobox values
+- Extract Wikipedia tables
+- Clean table cells and wiki links
+- Extract image metadata
+- Resolve real Wikimedia image URLs
+- Display images in the web interface
 - Extract metadata such as years and numbers with context
 - Filter content by section
+- Clean common Wikipedia markup
 - Clean search-result snippets
 - JSON output
 - Plain-text output
@@ -25,6 +49,7 @@ WikiClean accepts a Wikipedia article title, search term, or URL, fetches Wikipe
 - Command-line interface
 - Python API
 - HTTP API
+- Built-in web interface
 - Versioned API routes
 - Health endpoint
 - Network and error handling
@@ -44,6 +69,28 @@ Install the project:
 ```bash
 python -m pip install -e .
 ```
+
+## Web Interface
+
+Start the server:
+
+```bash
+python -m wikiclean.server
+```
+
+Then visit:
+
+```text
+http://127.0.0.1:8000/web
+```
+
+Enter a Wikipedia article title, such as:
+
+```text
+Albert Einstein
+```
+
+WikiClean will fetch, parse, clean, and display the article in a structured web page.
 
 ## CLI Usage
 
@@ -144,7 +191,7 @@ result = wikiclean.get(
 print(result)
 ```
 
-To retrieve the complete parsed article, including its infobox:
+To retrieve the complete parsed article:
 
 ```python
 import wikiclean
@@ -154,24 +201,105 @@ result = wikiclean.get(
     section="all",
 )
 
+print(result)
+```
+
+The complete article result can include:
+
+```text
+title
+pageid
+url
+summary
+sections
+section_tree
+infobox
+tables
+images
+metadata
+```
+
+### Infobox Example
+
+```python
+result = wikiclean.get(
+    "Albert Einstein",
+    section="all",
+)
+
 print(result["infobox"])
 ```
 
-Example infobox structure:
+Example structure:
 
 ```json
 {
   "type": "scientist",
   "fields": {
     "image": "Albert Einstein Head cleaned.jpg",
-    "birth_date": "{{Birth date|df=yes|1879|3|14}}",
-    "birth_place": "[[Ulm]], Kingdom of Württemberg, German Empire",
-    "fields": "[[Physics]]"
+    "birth_place": "Ulm, Kingdom of Württemberg, German Empire",
+    "fields": "Physics"
   }
 }
 ```
 
-Infobox values preserve Wikipedia's original wikitext, including nested templates and links.
+### Table Example
+
+```python
+result = wikiclean.get(
+    "List of countries by population (United Nations)",
+    section="all",
+)
+
+print(result["tables"])
+```
+
+Example structure:
+
+```json
+[
+  {
+    "headers": [
+      "Country or territory",
+      "Population"
+    ],
+    "rows": [
+      [
+        "India",
+        "1,438,069,596"
+      ]
+    ]
+  }
+]
+```
+
+### Image Example
+
+```python
+result = wikiclean.get(
+    "Albert Einstein",
+    section="all",
+)
+
+print(result["images"][:3])
+```
+
+Image results include the filename, Wikipedia image options, and resolved Wikimedia URL when available.
+
+Example structure:
+
+```json
+[
+  {
+    "filename": "Albert Einstein as a child.jpg",
+    "options": [
+      "thumb",
+      "upright=.9"
+    ],
+    "url": "https://upload.wikimedia.org/..."
+  }
+]
+```
 
 ## HTTP API
 
@@ -181,10 +309,16 @@ Start the server:
 python -m wikiclean.server
 ```
 
-By default, the API runs at:
+By default, WikiClean runs locally at:
 
 ```text
 http://127.0.0.1:8000
+```
+
+### API Information
+
+```text
+GET /
 ```
 
 ### Health Check
@@ -221,7 +355,7 @@ Example response:
 
 ### Multiple Search Results
 
-Use the `limit` parameter to control the number of results:
+Use the `limit` parameter:
 
 ```text
 GET /v1/search?q=Albert+Einstein&limit=5
@@ -288,20 +422,6 @@ GET /article/Holi?section=History
 
 WikiClean extracts the first Wikipedia infobox from an article's wikitext.
 
-Example:
-
-```json
-{
-  "type": "scientist",
-  "fields": {
-    "image": "Albert Einstein Head cleaned.jpg",
-    "birth_date": "{{Birth date|df=yes|1879|3|14}}",
-    "birth_place": "[[Ulm]], Kingdom of Württemberg, German Empire",
-    "known_for": "{{Indented plainlist|...}}"
-  }
-}
-```
-
 The infobox parser supports:
 
 - Standard infobox fields
@@ -310,6 +430,61 @@ The infobox parser supports:
 - Multiline values
 - Wiki links containing pipes
 - Case-insensitive infobox detection
+- Cleaning of common Wikipedia markup
+
+## Table Extraction
+
+WikiClean extracts Wikipedia wikitable data into structured headers and rows.
+
+Example:
+
+```json
+{
+  "headers": [
+    "Person",
+    "Field"
+  ],
+  "rows": [
+    [
+      "Einstein",
+      "Physics"
+    ]
+  ]
+}
+```
+
+Common wiki links, references, HTML tags, comments, and section markers are cleaned from table cells where supported.
+
+## Image Extraction
+
+WikiClean extracts image metadata from Wikipedia article wikitext.
+
+For complete article requests using:
+
+```python
+section="all"
+```
+
+WikiClean can also resolve extracted filenames to real Wikimedia image URLs.
+
+The built-in web interface displays these images in a responsive gallery.
+
+## Wikitext Cleaning
+
+WikiClean cleans common Wikipedia markup, including:
+
+- HTML comments
+- References
+- Self-closing references
+- Section markers
+- Wiki links
+- Wiki bold and italic formatting
+- HTML tags
+- HTML entities
+- Non-breaking spaces
+- Repeated whitespace
+
+Some complex Wikipedia templates may remain in the output.
 
 ## Metadata
 
@@ -345,7 +520,7 @@ pytest
 Current test suite:
 
 ```text
-58 passed
+114 passed
 ```
 
 ## Project Status
@@ -364,6 +539,11 @@ WikiClean currently supports:
 - [x] Hierarchical section trees
 - [x] Infobox extraction
 - [x] Nested and multiline infobox values
+- [x] Table extraction
+- [x] Table cell cleaning
+- [x] Image metadata extraction
+- [x] Wikimedia image URL resolution
+- [x] Common wikitext cleaning
 - [x] Metadata extraction
 - [x] Section filtering
 - [x] JSON output
@@ -378,14 +558,17 @@ WikiClean currently supports:
 - [x] HTTP multi-result search
 - [x] Versioned API routes
 - [x] Health endpoint
+- [x] Web interface
+- [x] Image gallery
 - [x] Network and error handling
 - [x] Automated tests
 
 Future possibilities:
 
-- [ ] Table extraction
-- [ ] Image metadata extraction
-- [ ] Web interface
+- [ ] More advanced Wikipedia template cleaning
+- [ ] Improved table parsing for complex tables
+- [ ] Image captions and richer image metadata
+- [ ] Public web deployment
 
 ## License
 

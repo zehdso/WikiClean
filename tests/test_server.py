@@ -56,10 +56,41 @@ def request_json(httpd, path):
         with urllib.request.urlopen(
             f"http://127.0.0.1:{port}{path}"
         ) as response:
-            return response.status, json.load(response)
+            return (
+                response.status,
+                json.load(response),
+            )
 
     except urllib.error.HTTPError as error:
-        return error.code, json.load(error)
+        return (
+            error.code,
+            json.load(error),
+        )
+
+
+def request_text(httpd, path):
+    port = httpd.server_address[1]
+
+    try:
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{port}{path}"
+        ) as response:
+            return (
+                response.status,
+                response.read().decode("utf-8"),
+                response.headers.get(
+                    "Content-Type"
+                ),
+            )
+
+    except urllib.error.HTTPError as error:
+        return (
+            error.code,
+            error.read().decode("utf-8"),
+            error.headers.get(
+                "Content-Type"
+            ),
+        )
 
 
 def test_root(monkeypatch):
@@ -416,6 +447,182 @@ def test_search_limit_below_one(monkeypatch):
             data["error"]
             == "Limit must be at least 1."
         )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_web_home(monkeypatch):
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+    )
+
+    try:
+        status, body, content_type = request_text(
+            httpd,
+            "/web",
+        )
+
+        assert status == 200
+        assert (
+            content_type
+            == "text/html; charset=utf-8"
+        )
+        assert "<title>WikiClean</title>" in body
+        assert 'action="/web/article"' in body
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_web_article(monkeypatch):
+    def fake_get(article, section="summary"):
+        return {
+            "title": article,
+            "summary": (
+                "Albert Einstein was a "
+                "theoretical physicist."
+            ),
+        }
+
+    httpd = start_test_server(
+        monkeypatch,
+        fake_get,
+    )
+
+    try:
+        status, body, content_type = request_text(
+            httpd,
+            "/web/article?q=Albert+Einstein",
+        )
+
+        assert status == 200
+        assert (
+            content_type
+            == "text/html; charset=utf-8"
+        )
+        assert "<h1>Albert Einstein</h1>" in body
+        assert (
+            "Albert Einstein was a "
+            "theoretical physicist."
+            in body
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_web_article_uses_all_sections(
+    monkeypatch,
+):
+    calls = []
+
+    def fake_get(article, section="summary"):
+        calls.append(
+            (article, section)
+        )
+
+        return {
+            "title": article,
+            "summary": "Test summary.",
+        }
+
+    httpd = start_test_server(
+        monkeypatch,
+        fake_get,
+    )
+
+    try:
+        status, _, _ = request_text(
+            httpd,
+            "/web/article?q=Holi",
+        )
+
+        assert status == 200
+        assert calls == [
+            (
+                "Holi",
+                "all",
+            )
+        ]
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_web_article_missing_query(
+    monkeypatch,
+):
+    httpd = start_test_server(
+        monkeypatch,
+        lambda article, section="summary": {},
+    )
+
+    try:
+        status, body, _ = request_text(
+            httpd,
+            "/web/article",
+        )
+
+        assert status == 400
+        assert "<title>WikiClean</title>" in body
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_web_article_not_found(
+    monkeypatch,
+):
+    def fake_get(article, section="summary"):
+        raise ValueError(
+            "Article not found."
+        )
+
+    httpd = start_test_server(
+        monkeypatch,
+        fake_get,
+    )
+
+    try:
+        status, body, _ = request_text(
+            httpd,
+            "/web/article?q=Missing",
+        )
+
+        assert status == 404
+        assert "Article not found" in body
+        assert (
+            "could not be found"
+            in body
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_web_article_fetch_failure(
+    monkeypatch,
+):
+    def fake_get(article, section="summary"):
+        raise RuntimeError(
+            "Could not fetch the article."
+        )
+
+    httpd = start_test_server(
+        monkeypatch,
+        fake_get,
+    )
+
+    try:
+        status, body, _ = request_text(
+            httpd,
+            "/web/article?q=Test",
+        )
+
+        assert status == 502
+        assert "Wikipedia unavailable" in body
     finally:
         httpd.shutdown()
         httpd.server_close()

@@ -1,5 +1,6 @@
 from .fetch import fetch_article
 from .filters import filter_article
+from .image_urls import add_image_urls
 from .input import resolve_input
 from .output import format_output
 from .parser import parse_article
@@ -21,12 +22,26 @@ def get(
         raise RuntimeError("Could not fetch the article.")
 
     parsed = parse_article(fetched)
-    result = filter_article(parsed, section)
+
+    if section == "all":
+        parsed["images"] = add_image_urls(
+            parsed.get("images", [])
+        )
+
+    result = filter_article(
+        parsed,
+        section,
+    )
 
     if result is None:
-        raise ValueError(f"Section not found: {section}")
+        raise ValueError(
+            f"Section not found: {section}"
+        )
 
     if output_format is None:
         return result
 
-    return format_output(result, output_format)
+    return format_output(
+        result,
+        output_format,
+    )
