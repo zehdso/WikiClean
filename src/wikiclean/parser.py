@@ -1,5 +1,6 @@
 import re
 
+from .images import extract_images
 from .infobox import extract_infobox
 from .metadata import extract_metadata
 from .tables import extract_tables
@@ -69,6 +70,9 @@ def parse_article(article: dict) -> dict:
             wikitext
         ),
         "tables": extract_tables(
+            wikitext
+        ),
+        "images": extract_images(
             wikitext
         ),
     }
